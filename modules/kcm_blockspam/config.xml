@@ -2,7 +2,7 @@
 <module>
     <name>kcm_blockspam</name>
     <displayName><![CDATA[Spamblokkade (e-maildomeinen en woorden)]]></displayName>
-    <version><![CDATA[1.0.0]]></version>
+    <version><![CDATA[1.1.0]]></version>
     <description><![CDATA[Weigert registraties en contactberichten van geblokkeerde e-maildomeinen, wegwerpadressen en berichten met geblokkeerde woorden.]]></description>
     <author><![CDATA[StefanPostma]]></author>
     <tab><![CDATA[front_office_features]]></tab>

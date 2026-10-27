@@ -12,8 +12,10 @@ class Kcm_Blockspam extends Module
 {
     const DOMAINS = 'KCM_BLOCK_DOMAINS';     // one per line: example.com | .example.com (incl. subdomains) | .ru (TLD) | user@example.com
     const WORDS = 'KCM_BLOCK_WORDS';         // one per line, matched case-insensitively in contact messages / names
-    const DISPOSABLE = 'KCM_BLOCK_DISPOSABLE'; // 1 = also use the public disposable-email-domains list
-    const DISPOSABLE_URL = 'https://raw.githubusercontent.com/disposable-email-domains/disposable-email-domains/main/disposable_email_blocklist.conf';
+    const DISPOSABLE = 'KCM_BLOCK_DISPOSABLE'; // 1 = also use a public disposable-email-domains list
+    const DISPOSABLE_URL_KEY = 'KCM_BLOCK_DISPOSABLE_URL'; // optional: own list URL (one domain per line); empty = DISPOSABLE_URL
+    const DISPOSABLE_URL = 'https://disposable.github.io/disposable-email-domains/domains.txt'; // ~100,000 domains
+    const DISPOSABLE_URL_SMALL = 'https://raw.githubusercontent.com/disposable-email-domains/disposable-email-domains/main/disposable_email_blocklist.conf'; // ~10,000 domains
     const FIELD = 'kcm_blockcheck';
     const PAGES = ['authentication', 'registration', 'order'];
 
@@ -21,7 +23,7 @@ class Kcm_Blockspam extends Module
     {
         $this->name = 'kcm_blockspam';
         $this->tab = 'front_office_features';
-        $this->version = '1.0.0';
+        $this->version = '1.1.0';
         $this->author = 'StefanPostma';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => _PS_VERSION_];
@@ -60,7 +62,7 @@ class Kcm_Blockspam extends Module
 
     public function uninstall()
     {
-        foreach ([self::DOMAINS, self::WORDS, self::DISPOSABLE] as $k) {
+        foreach ([self::DOMAINS, self::WORDS, self::DISPOSABLE, self::DISPOSABLE_URL_KEY] as $k) {
             Configuration::deleteByName($k);
         }
         return parent::uninstall(); // the log table is kept
@@ -75,6 +77,15 @@ class Kcm_Blockspam extends Module
             Configuration::updateValue(self::DOMAINS, $this->normaliseList((string) Tools::getValue(self::DOMAINS)), false, null, null);
             Configuration::updateValue(self::WORDS, $this->normaliseList((string) Tools::getValue(self::WORDS)), false, null, null);
             Configuration::updateValue(self::DISPOSABLE, (int) Tools::getValue(self::DISPOSABLE));
+            $url = trim((string) Tools::getValue(self::DISPOSABLE_URL_KEY));
+            if ($url !== '' && !preg_match('#^https://\S+$#', $url)) {
+                $out .= $this->displayError('De URL van de wegwerplijst moet met https:// beginnen; de URL is niet opgeslagen.');
+            } else {
+                if ($url !== (string) Configuration::get(self::DISPOSABLE_URL_KEY) && is_file($this->disposablePath())) {
+                    unlink($this->disposablePath()); // new source: fetch it at the next check
+                }
+                Configuration::updateValue(self::DISPOSABLE_URL_KEY, $url);
+            }
             $out .= $this->displayConfirmation('Instellingen opgeslagen.');
         } elseif (Tools::isSubmit('submitKcmBlockRefresh')) {
             $n = $this->refreshDisposable(true);
@@ -111,7 +122,9 @@ class Kcm_Blockspam extends Module
                     'desc' => 'Eén per regel, hoofdletterongevoelig; gezocht in het bericht en het e-mailadres van het contactformulier. Bijvoorbeeld: seo services, backlinks, crypto.'],
                 ['type' => 'switch', 'label' => 'Ook wegwerp-e-maildomeinen blokkeren', 'name' => self::DISPOSABLE, 'is_bool' => true,
                     'values' => [['id' => 'disp_on', 'value' => 1, 'label' => 'Ja'], ['id' => 'disp_off', 'value' => 0, 'label' => 'Nee']],
-                    'desc' => 'Gebruikt de open lijst disposable-email-domains (GitHub), automatisch ververst na 7 dagen. ' . $disp],
+                    'desc' => 'De lijst wordt automatisch ververst na 7 dagen. ' . $disp],
+                ['type' => 'text', 'label' => 'URL van de lijst met wegwerpdomeinen', 'name' => self::DISPOSABLE_URL_KEY, 'placeholder' => self::DISPOSABLE_URL,
+                    'desc' => 'Tekstbestand met één domein per regel. Leeg = de open lijst <code>disposable/disposable-email-domains</code> op GitHub (ruim 100.000 domeinen). Kleiner alternatief: <code>' . self::DISPOSABLE_URL_SMALL . '</code> (circa 10.000 domeinen). Na wijziging wordt de lijst opnieuw gedownload.'],
             ],
             'buttons' => [['title' => 'Lijst wegwerpdomeinen nu verversen', 'name' => 'submitKcmBlockRefresh', 'type' => 'submit', 'class' => 'btn btn-default pull-left', 'icon' => 'process-icon-refresh', 'js' => "this.value='1'"]],
             'submit' => ['title' => 'Opslaan'],
@@ -124,7 +137,7 @@ class Kcm_Blockspam extends Module
         $helper->submit_action = 'submitKcmBlock';
         $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false) . '&configure=' . $this->name . '&tab_module=' . $this->tab . '&module_name=' . $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
-        $helper->tpl_vars = ['fields_value' => [self::DOMAINS => Configuration::get(self::DOMAINS), self::WORDS => Configuration::get(self::WORDS), self::DISPOSABLE => (int) Configuration::get(self::DISPOSABLE)],
+        $helper->tpl_vars = ['fields_value' => [self::DOMAINS => Configuration::get(self::DOMAINS), self::WORDS => Configuration::get(self::WORDS), self::DISPOSABLE => (int) Configuration::get(self::DISPOSABLE), self::DISPOSABLE_URL_KEY => (string) Configuration::get(self::DISPOSABLE_URL_KEY)],
             'languages' => $this->context->controller->getLanguages(), 'id_language' => $this->context->language->id];
         return $helper->generateForm([$form]);
     }
@@ -160,6 +173,13 @@ class Kcm_Blockspam extends Module
         return _PS_MODULE_DIR_ . $this->name . '/data/disposable.txt';
     }
 
+    /** The list URL: the configured one, or the public default. */
+    public function disposableUrl(): string
+    {
+        $u = trim((string) Configuration::get(self::DISPOSABLE_URL_KEY));
+        return $u !== '' ? $u : self::DISPOSABLE_URL;
+    }
+
     private function disposableInfo(): string
     {
         $p = $this->disposablePath();
@@ -176,11 +196,12 @@ class Kcm_Blockspam extends Module
         if (!$force && is_file($p) && filemtime($p) > time() - 7 * 86400) {
             return count(file($p, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES));
         }
-        $ctx = stream_context_create(['http' => ['timeout' => 20, 'header' => "User-Agent: PrestaShop kcm_blockspam\r\n"]]);
-        $raw = @file_get_contents(self::DISPOSABLE_URL, false, $ctx);
+        $ctx = stream_context_create(['http' => ['timeout' => 40, 'header' => "User-Agent: PrestaShop kcm_blockspam\r\n"]]);
+        $url = $this->disposableUrl();
+        $raw = @file_get_contents($url, false, $ctx);
         if ($raw === false && function_exists('curl_init')) {
-            $ch = curl_init(self::DISPOSABLE_URL);
-            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_USERAGENT => 'PrestaShop kcm_blockspam']);
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40, CURLOPT_USERAGENT => 'PrestaShop kcm_blockspam']);
             $raw = curl_exec($ch);
             curl_close($ch);
         }
@@ -189,7 +210,15 @@ class Kcm_Blockspam extends Module
             return 0;
         }
         @mkdir(dirname($p), 0755, true);
-        file_put_contents($p, strtolower(trim($raw)) . "\n");
+        // keep only domain-like lines (drops comments, blank lines and stray whitespace)
+        $lines = [];
+        foreach (preg_split('/\r?\n/', strtolower($raw)) as $l) {
+            $l = trim($l);
+            if ($l !== '' && $l[0] !== '#' && strpos($l, '.') !== false) {
+                $lines[] = $l;
+            }
+        }
+        file_put_contents($p, implode("\n", $lines) . "\n");
         return count(file($p, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES));
     }
 

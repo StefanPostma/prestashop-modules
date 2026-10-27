@@ -4,9 +4,10 @@ Blocks account creation, guest checkout and contact-form messages when
 
 * the e-mail domain or address is on your blocklist (`example.com`, `.example.com` incl. subdomains, `.ru` for a
   whole TLD, or `name@example.com`),
-* the domain is a disposable e-mail domain (optional; uses the public
-  [disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) list, refreshed
-  every 7 days),
+* the domain is a disposable e-mail domain (optional; by default the public
+  [disposable/disposable-email-domains](https://github.com/disposable/disposable) list with more than 100,000
+  domains, refreshed every 7 days; you can enter the URL of any other list with one domain per line, for example the
+  smaller [disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) list),
 * the contact message or e-mail address contains one of your blocked words (case-insensitive).
 
 A blocked registration shows "This e-mail address is not accepted" on the form; a blocked contact message is not
@@ -40,4 +41,5 @@ contact form needs the `kc_contact_error` notice; both snippets are the same as 
   checks the posted e-mail (and first/last name against the word list) and adds the error to that field.
 * Contact form: `actionFrontControllerInitBefore` checks `from` and `message` before the `contactform` module runs,
   removes `submitMessage` when blocked and sets `kc_contact_error`.
-* The disposable list is cached in `data/disposable.txt` inside the module folder.
+* The disposable list is cached in `data/disposable.txt` inside the module folder (comment lines are dropped); changing
+  the URL deletes the cache so the new list is fetched at the next check or with the refresh button.
