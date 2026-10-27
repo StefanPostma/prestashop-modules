@@ -2,3 +2,4 @@
 *.zip
 modules/kcm_aidescribe/upload/*
 !modules/kcm_aidescribe/upload/index.php
+modules/kcm_blockspam/data/disposable.txt
