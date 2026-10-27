@@ -1,0 +1,4 @@
+.DS_Store
+*.zip
+modules/kcm_aidescribe/upload/*
+!modules/kcm_aidescribe/upload/index.php
