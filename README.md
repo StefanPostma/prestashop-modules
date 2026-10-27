@@ -8,6 +8,7 @@ or copied into the `modules/` folder of the shop and installed from the Module m
 |---|---|
 | [`kcm_postcode`](modules/kcm_postcode) | Accepts Dutch postcodes typed without a space (`1234AB`) in the address forms; PrestaShop 8/9 otherwise rejects them because the country format is `NNNN LL`. |
 | [`kcm_aidescribe`](modules/kcm_aidescribe) | Adds a button to the product page that writes the product description (and short description) with OpenAI or Anthropic, based on the product photos and the text you already typed. |
+| [`kcm_turnstile`](modules/kcm_turnstile) | Cloudflare Turnstile bot check on account creation, the guest step of the checkout and the contact form; each place can be switched on or off. |
 
 The `kcm_` prefix is just the author's module prefix. The back-office texts of the modules are in Dutch.
 
