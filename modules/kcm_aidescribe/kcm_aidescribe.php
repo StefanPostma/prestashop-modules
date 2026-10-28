@@ -9,6 +9,7 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 require_once __DIR__ . '/classes/KcmAiClient.php';
+require_once __DIR__ . '/classes/KcmAiDescriber.php';
 
 class Kcm_Aidescribe extends Module
 {
@@ -26,7 +27,7 @@ class Kcm_Aidescribe extends Module
     {
         $this->name = 'kcm_aidescribe';
         $this->tab = 'administration';
-        $this->version = '1.0.0';
+        $this->version = '1.1.0';
         $this->author = 'StefanPostma';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => _PS_VERSION_];
