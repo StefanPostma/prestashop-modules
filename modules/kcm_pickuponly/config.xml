@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<module>
+    <name>kcm_pickuponly</name>
+    <displayName><![CDATA[Pickup only shipping line]]></displayName>
+    <version><![CDATA[1.0.0]]></version>
+    <description><![CDATA[Shows the pickup carrier instead of "Free" shipping when the cart can only be collected.]]></description>
+    <author><![CDATA[StefanPostma]]></author>
+    <tab><![CDATA[checkout]]></tab>
+    <is_configurable>1</is_configurable>
+    <need_instance>0</need_instance>
+</module>

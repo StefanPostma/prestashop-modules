@@ -10,6 +10,7 @@ or copied into the `modules/` folder of the shop and installed from the Module m
 | [`kcm_aidescribe`](modules/kcm_aidescribe) | Adds a button to the product page that writes the product description (and short description) with OpenAI or Anthropic, based on the product photos and the text you already typed. |
 | [`kcm_turnstile`](modules/kcm_turnstile) | Cloudflare Turnstile bot check on account creation, the guest step of the checkout, the contact form and the newsletter form; each place can be switched on or off, with theme, appearance and a test mode. |
 | [`kcm_blockspam`](modules/kcm_blockspam) | Blocks account creation, guest checkout and contact-form messages from blocked e-mail domains or addresses, disposable e-mail domains and messages with blocked words; keeps a log of blocked attempts. |
+| [`kcm_pickuponly`](modules/kcm_pickuponly) | Replaces the misleading "Shipping: Free" in the cart and checkout summary by the pickup carrier's name when every delivery option of the cart is a pickup carrier (collect-only products). |
 
 The `kcm_` prefix is just the author's module prefix. The back-office texts of the modules are in Dutch.
 
