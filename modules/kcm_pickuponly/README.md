@@ -6,6 +6,9 @@ carrier without shipping cost), the cart, the cart modal and the checkout summar
 pickup carrier's name, e.g. **Shipping: Collect at the shop**, as soon as *every* delivery option
 of the cart is a pickup carrier. Carts that can (also) be shipped are left untouched.
 
+On the product page a line under the price tells the customer that the product can only be
+collected (hook `displayProductPriceBlock`, product sheet only).
+
 ## How it works
 
 - Hook `actionPresentCart`: the presented cart is a lazy array; the module reads the `subtotals`,
@@ -21,6 +24,7 @@ of the cart is a pickup carrier. Carts that can (also) be shipped are left untou
 |---|---|
 | Pickup carriers | on install: active carriers whose name contains *ophalen*, *afhalen*, *pickup*, *abhol*, *retrait* or *click* |
 | Text instead of "Free" | empty = the carrier name |
+| Product page text | `Niet verzendbaar, alleen afhalen (%carrier%)`; `%carrier%` = carrier name, empty = no line |
 
 ## Install
 
@@ -29,7 +33,10 @@ Upload the zip in Modules > Upload a module, or copy `kcm_pickuponly/` to `modul
 
 ## Limits
 
-- Only the summary line is changed. The delivery step still lists the pickup carrier as before.
+- The delivery step still lists the pickup carrier as before.
+- The product page line only appears for products with a carrier restriction to pickup carriers.
+  Products without restriction (all carriers) are considered shippable.
+- Styling: `views/css/kcm_pickuponly.css` (class `kcm-pickup-only`), loaded on the product page.
 - A cart with a collect-only product *and* a product that can be shipped is handled by
   PrestaShop itself (one package per carrier set); the module only acts when no shipping
   carrier is available for the whole cart.

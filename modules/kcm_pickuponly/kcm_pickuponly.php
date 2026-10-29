@@ -7,8 +7,12 @@
  * cart, the cart modal and the checkout summary. This module replaces that "Free" with the pickup
  * carrier's name (or a text of your choice), so the customer sees e.g. "Shipping: Collect at the shop".
  *
+ * On the product page a line under the price tells that the product can only be collected
+ * (hook displayProductPriceBlock, type "weight" of the product sheet).
+ *
  * Hook: actionPresentCart (the presented cart is a lazy array; the shipping subtotal is overridden).
- * Settings: which carriers count as pickup carriers, and an optional replacement text.
+ * Settings: which carriers count as pickup carriers, an optional replacement text for the
+ * shipping line and the text for the product page.
  */
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -22,12 +26,16 @@ class Kcm_Pickuponly extends Module
     const CARRIERS_KEY = 'KCM_PICKUP_CARRIERS';
     /** text shown instead of "Free"; empty = the pickup carrier's name */
     const TEXT_KEY = 'KCM_PICKUP_TEXT';
+    /** text under the price on the product page; %carrier% = carrier name; empty = no line */
+    const PRODUCT_TEXT_KEY = 'KCM_PICKUP_PRODUCT_TEXT';
+    const PRODUCT_TEXT_DEFAULT = 'Niet verzendbaar, alleen afhalen (%carrier%)';
+    const HOOKS = ['actionPresentCart', 'displayProductPriceBlock', 'actionFrontControllerSetMedia'];
 
     public function __construct()
     {
         $this->name = 'kcm_pickuponly';
         $this->tab = 'checkout';
-        $this->version = '1.0.0';
+        $this->version = '1.1.0';
         $this->author = 'StefanPostma';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => _PS_VERSION_];
@@ -46,14 +54,19 @@ class Kcm_Pickuponly extends Module
     public function ensureInstalled(): bool
     {
         $ok = true;
-        if (!Hook::isModuleRegisteredOnHook($this, 'actionPresentCart', (int) Context::getContext()->shop->id)) {
-            $ok = $this->registerHook('actionPresentCart') && $ok;
+        foreach (self::HOOKS as $hook) {
+            if (!Hook::isModuleRegisteredOnHook($this, $hook, (int) Context::getContext()->shop->id)) {
+                $ok = $this->registerHook($hook) && $ok;
+            }
         }
         if (Configuration::get(self::CARRIERS_KEY) === false) {
             $ok = Configuration::updateValue(self::CARRIERS_KEY, implode(',', $this->guessPickupCarriers())) && $ok;
         }
         if (Configuration::get(self::TEXT_KEY) === false) {
             $ok = Configuration::updateValue(self::TEXT_KEY, '') && $ok;
+        }
+        if (Configuration::get(self::PRODUCT_TEXT_KEY) === false) {
+            $ok = Configuration::updateValue(self::PRODUCT_TEXT_KEY, self::PRODUCT_TEXT_DEFAULT) && $ok;
         }
 
         return $ok;
@@ -63,6 +76,7 @@ class Kcm_Pickuponly extends Module
     {
         Configuration::deleteByName(self::CARRIERS_KEY);
         Configuration::deleteByName(self::TEXT_KEY);
+        Configuration::deleteByName(self::PRODUCT_TEXT_KEY);
 
         return parent::uninstall();
     }
@@ -94,6 +108,69 @@ class Kcm_Pickuponly extends Module
         $presented->offsetSet('subtotals', $subtotals, true);
     }
 
+    /** Product sheet, under the price: tells that the product can only be collected. */
+    public function hookDisplayProductPriceBlock(array $params)
+    {
+        if (($params['type'] ?? '') !== 'weight' || ($params['hook_origin'] ?? '') !== 'product_sheet') {
+            return '';
+        }
+        $product = $params['product'] ?? null;
+        $idProduct = (int) ($product['id_product'] ?? $product['id'] ?? 0);
+        $text = trim((string) Configuration::get(self::PRODUCT_TEXT_KEY));
+        if (!$idProduct || $text === '') {
+            return '';
+        }
+        $carrierName = $this->pickupOnlyProductCarrierName($idProduct);
+        if ($carrierName === null) {
+            return '';
+        }
+        $this->context->smarty->assign('kcm_pickup_text', str_replace('%carrier%', $carrierName, $text));
+
+        return $this->fetch('module:kcm_pickuponly/views/templates/hook/product.tpl');
+    }
+
+    public function hookActionFrontControllerSetMedia(array $params)
+    {
+        if (($this->context->controller->php_self ?? '') === 'product') {
+            $this->context->controller->registerStylesheet('modules-kcm-pickuponly', 'modules/' . $this->name . '/views/css/kcm_pickuponly.css', ['media' => 'all', 'priority' => 150]);
+        }
+    }
+
+    /**
+     * Name of the pickup carrier when the product is restricted to pickup carriers only,
+     * null when the product has no carrier restriction or can be shipped.
+     */
+    private function pickupOnlyProductCarrierName(int $idProduct): ?string
+    {
+        $refs = $this->pickupCarrierRefs();
+        if (!$refs) {
+            return null;
+        }
+        $rows = Db::getInstance()->executeS('SELECT DISTINCT c.id_reference, c.name FROM `' . _DB_PREFIX_ . 'product_carrier` pc
+            INNER JOIN `' . _DB_PREFIX_ . 'carrier` c ON c.id_reference = pc.id_carrier_reference AND c.deleted = 0
+            WHERE pc.id_product = ' . $idProduct . ' AND pc.id_shop = ' . (int) $this->context->shop->id);
+        if (!$rows) {
+            return null;
+        }
+        $name = null;
+        foreach ($rows as $row) {
+            if (!in_array((int) $row['id_reference'], $refs, true)) {
+                return null;
+            }
+            $name = $name ?? $this->carrierDisplayName($row['name']);
+        }
+
+        return $name;
+    }
+
+    /** PrestaShop stores "0" as carrier name for "use the shop name". */
+    private function carrierDisplayName($name): string
+    {
+        $name = is_array($name) ? (string) reset($name) : (string) $name;
+
+        return $name === '0' ? (string) Configuration::get('PS_SHOP_NAME') : $name;
+    }
+
     /**
      * Name of the pickup carrier when every delivery option of the cart is a pickup carrier,
      * null when the cart can (also) be shipped or has no delivery options at all.
@@ -116,7 +193,7 @@ class Kcm_Pickuponly extends Module
                     if (!in_array((int) $carrier->id_reference, $refs, true)) {
                         return null;
                     }
-                    $name = $name ?? (is_array($carrier->name) ? reset($carrier->name) : $carrier->name);
+                    $name = $name ?? $this->carrierDisplayName($carrier->name);
                 }
             }
         }
@@ -170,6 +247,7 @@ class Kcm_Pickuponly extends Module
             }
             Configuration::updateValue(self::CARRIERS_KEY, implode(',', $refs));
             Configuration::updateValue(self::TEXT_KEY, trim(strip_tags((string) Tools::getValue(self::TEXT_KEY))));
+            Configuration::updateValue(self::PRODUCT_TEXT_KEY, trim(strip_tags((string) Tools::getValue(self::PRODUCT_TEXT_KEY))));
             $out .= $this->displayConfirmation($this->trans('Settings updated', [], 'Admin.Notifications.Success'));
         }
 
@@ -188,6 +266,7 @@ class Kcm_Pickuponly extends Module
 
         $fields = [
             self::TEXT_KEY => Configuration::get(self::TEXT_KEY),
+            self::PRODUCT_TEXT_KEY => Configuration::get(self::PRODUCT_TEXT_KEY),
         ];
         $refs = $this->pickupCarrierRefs();
         foreach ($this->allCarriers() as $c) {
@@ -211,6 +290,12 @@ class Kcm_Pickuponly extends Module
                         'label' => $this->trans('Text instead of "Free"', [], 'Modules.Kcmpickuponly.Admin'),
                         'name' => self::TEXT_KEY,
                         'desc' => $this->trans('Leave empty to show the carrier name.', [], 'Modules.Kcmpickuponly.Admin'),
+                    ],
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Product page text', [], 'Modules.Kcmpickuponly.Admin'),
+                        'name' => self::PRODUCT_TEXT_KEY,
+                        'desc' => $this->trans('Shown under the price of a product that can only be collected. %carrier% becomes the carrier name. Leave empty for no line.', [], 'Modules.Kcmpickuponly.Admin'),
                     ],
                 ],
                 'submit' => ['title' => $this->trans('Save', [], 'Admin.Actions')],
