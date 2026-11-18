@@ -41,7 +41,7 @@ class Kcm_Turnstile extends Module
         $this->version = '1.1.0';
         $this->author = 'StefanPostma';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => _PS_VERSION_];
+        $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => '9.99.99']; // tested on 9.2.1 (2026-11-18)
         $this->bootstrap = true;
         parent::__construct();
         $this->displayName = $this->trans('Cloudflare Turnstile', [], 'Modules.Kcmturnstile.Admin');
@@ -221,13 +221,14 @@ class Kcm_Turnstile extends Module
             . '" data-theme="' . $this->theme() . '" data-appearance="' . $this->appearance() . '" data-action="' . htmlspecialchars($action) . '"' . ($style !== '' ? ' style="' . $style . '"' : '') . '></div>';
     }
 
+    /** PrestaShop accepts a single script attribute ('async' or 'defer'); 'async defer' is silently dropped. */
     public function hookActionFrontControllerSetMedia(array $params)
     {
         if (!$this->isEnabledHere() && !$this->newsletterEnabled()) {
             return;
         }
         $this->context->controller->registerJavascript('kcm-turnstile-api', 'https://challenges.cloudflare.com/turnstile/v0/api.js',
-            ['server' => 'remote', 'position' => 'head', 'priority' => 50, 'attributes' => 'async defer']);
+            ['server' => 'remote', 'position' => 'head', 'priority' => 50, 'attributes' => 'defer']);
     }
 
     /** Contact page: the theme's contactform.tpl calls {hook h='displayKcmTurnstile'} to render the widget. */

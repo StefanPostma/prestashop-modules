@@ -27,7 +27,7 @@ class Kcm_Producttext extends Module
         $this->version = '1.0.0';
         $this->author = 'StefanPostma';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => _PS_VERSION_];
+        $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => '9.99.99']; // tested on 9.2.1 (2026-11-18)
         $this->bootstrap = true;
         $this->dependencies = ['kcm_aidescribe'];
         parent::__construct();
