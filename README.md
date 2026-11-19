@@ -2,7 +2,7 @@
 
 <a href="https://buymeacoffee.com/stefanpostma"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=stefanpostma&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy me a coffee" height="36"></a>
 
-Small, self-contained modules for PrestaShop 8 and 9, written for a Dutch webshop and shared as-is. Declared compatible up to 9.99.99 and last tested on PrestaShop 9.2.1 (PHP 8.4).
+Small, self-contained modules for PrestaShop 8 and 9, written for a Dutch webshop and shared as-is. Each module declares the exact highest PrestaShop version it was tested on (currently 9.2.1, PHP 8.4).
 Each module lives in `modules/<name>` and can be zipped and uploaded through *Modules > Module manager > Upload a module*,
 or copied into the `modules/` folder of the shop and installed from the Module manager.
 

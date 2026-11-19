@@ -21,7 +21,7 @@ class Kcm_Postcode extends Module
         $this->version = '1.0.0';
         $this->author = 'StefanPostma';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => '9.99.99']; // tested on 9.2.1 (2026-11-18)
+        $this->ps_versions_compliancy = ['min' => '8.0.0', 'max' => '9.2.1']; // highest PrestaShop version this module was tested on
         $this->bootstrap = true;
         parent::__construct();
         $this->displayName = $this->trans('Dutch postcode without space', [], 'Modules.Kcmpostcode.Admin');
