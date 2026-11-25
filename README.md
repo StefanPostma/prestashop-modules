@@ -14,6 +14,7 @@ or copied into the `modules/` folder of the shop and installed from the Module m
 | [`kcm_blockspam`](modules/kcm_blockspam) | Blocks account creation, guest checkout and contact-form messages from blocked e-mail domains or addresses, disposable e-mail domains and messages with blocked words; keeps a log of blocked attempts. |
 | [`kcm_pickuponly`](modules/kcm_pickuponly) | Replaces the misleading "Shipping: Free" in the cart and checkout summary by the pickup carrier's name when every delivery option of the cart is a pickup carrier (collect-only products). |
 | [`kcm_producttext`](modules/kcm_producttext) | One back-office page that lists all product descriptions by length, generates AI drafts in batches through `kcm_aidescribe`, and lets you review, edit, save and restore them product by product. Requires `kcm_aidescribe`. |
+| [`kcm_gfeed`](modules/kcm_gfeed) | Product feed for Google Merchant Center (RSS with the `g:` attributes) with a `shipping_label` that separates shippable from collect-only products, sale prices, a local inventory feed for free local listings, and the Google Customer Reviews survey opt-in on the order confirmation page. |
 
 The `kcm_` prefix is just the author's module prefix. The back-office texts of the modules are in Dutch.
 
@@ -27,6 +28,10 @@ cd modules && zip -r ../kcm_postcode.zip kcm_postcode -x '*.DS_Store'
 
 * No API keys or shop data are stored in this repository. `kcm_aidescribe` stores the API keys you enter in the
   PrestaShop configuration table of your own shop.
+* `kcm_gfeed` protects its feed URLs with a random token that is generated on install and stored in the
+  configuration table of your own shop. With the Google Customer Reviews opt-in switched on, the order reference,
+  e-mail address, delivery country and estimated delivery date of an order are passed to Google on the order
+  confirmation page; mention this in your privacy statement.
 * Report problems through the issue tracker of this repository.
 
 ## License
